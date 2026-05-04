@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Controls from './components/Controls';
 import Canvas from './components/Canvas';
 import TeachingPanel from './components/TeachingPanel';
@@ -11,6 +11,7 @@ export default function App() {
     neuronsPerLayer: 64,
     activation: 'tanh',
     learningRate: 0.1,
+    dropoutRate: 0,
     epochs: 500,
   });
 
@@ -91,7 +92,7 @@ export default function App() {
     // Record what config this training uses
     setTrainedWith({ ...config });
 
-    const { inputs, labels } = prepareData(points);
+    const { inputs, labels } = prepareData(points, config);
 
     try {
       await freshModel.fit(inputs, labels, {
@@ -143,6 +144,7 @@ export default function App() {
     trainedWith.neuronsPerLayer !== config.neuronsPerLayer ||
     trainedWith.activation !== config.activation ||
     trainedWith.learningRate !== config.learningRate ||
+    trainedWith.dropoutRate !== config.dropoutRate ||
     trainedWith.epochs !== config.epochs
   );
 
@@ -167,7 +169,6 @@ export default function App() {
           onAddPoint={handleAddPoint}
           predictionCurve={predictionCurve}
           coefficients={coefficients}
-          isTraining={isTraining}
         />
       </main>
 
@@ -178,6 +179,7 @@ export default function App() {
         loss={loss}
         lossHistory={lossHistory}
         coefficients={coefficients}
+        currentActivation={config.activation}
         trainedWith={trainedWith}
         configChanged={configChanged}
       />

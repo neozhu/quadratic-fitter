@@ -26,6 +26,24 @@ export function denormalizeY(normY) {
   return ((normY + 1) / 2) * (Y_MAX - Y_MIN) + Y_MIN;
 }
 
+function isLinearQuadraticModel(config) {
+  return config.activation === 'linear';
+}
+
+function modelInputSize(model) {
+  return model.inputs?.[0]?.shape?.[1] ?? 1;
+}
+
+function normalizedXsToInputTensor(xs, inputSize) {
+  if (inputSize === 2) {
+    const xArray = Array.from(xs.dataSync());
+    const features = xArray.flatMap(x => [x, x * x]);
+    return tf.tensor2d(features, [xArray.length, 2]);
+  }
+
+  return xs.reshape([xs.shape[0], 1]);
+}
+
 /**
  * Build a neural network model based on user config.
  * Input: [x] (normalized to [-1, 1])
@@ -33,6 +51,22 @@ export function denormalizeY(normY) {
  */
 export function buildModel(config) {
   const model = tf.sequential();
+  const dropoutRate = Number(config.dropoutRate) || 0;
+
+  if (isLinearQuadraticModel(config)) {
+    model.add(tf.layers.dense({
+      inputShape: [2],
+      units: 1,
+      activation: 'linear'
+    }));
+
+    model.compile({
+      optimizer: tf.train.adam(config.learningRate),
+      loss: 'meanSquaredError'
+    });
+
+    return model;
+  }
 
   // First hidden layer
   model.add(tf.layers.dense({
@@ -41,6 +75,9 @@ export function buildModel(config) {
     activation: config.activation,
     kernelInitializer: 'glorotNormal'
   }));
+  if (dropoutRate > 0) {
+    model.add(tf.layers.dropout({ rate: dropoutRate }));
+  }
 
   // Additional hidden layers
   for (let i = 1; i < config.hiddenLayers; i++) {
@@ -49,6 +86,9 @@ export function buildModel(config) {
       activation: config.activation,
       kernelInitializer: 'glorotNormal'
     }));
+    if (dropoutRate > 0) {
+      model.add(tf.layers.dropout({ rate: dropoutRate }));
+    }
   }
 
   // Output layer — linear for regression
@@ -69,12 +109,16 @@ export function buildModel(config) {
  * Prepare training data from user-clicked points.
  * Normalizes both x and y to [-1, 1].
  */
-export function prepareData(points) {
+export function prepareData(points, config = {}) {
   const xs = points.map(p => normalizeX(p.x));
   const ys = points.map(p => normalizeY(p.y));
+  const inputSize = isLinearQuadraticModel(config) ? 2 : 1;
+  const features = inputSize === 2
+    ? xs.flatMap(x => [x, x * x])
+    : xs;
 
   return {
-    inputs: tf.tensor2d(xs, [xs.length, 1]),
+    inputs: tf.tensor2d(features, [xs.length, inputSize]),
     labels: tf.tensor2d(ys, [ys.length, 1])
   };
 }
@@ -89,7 +133,8 @@ export function predictCurve(model, numPoints = 200) {
   return tf.tidy(() => {
     // Sample x in normalized space [-1, 1]
     const xs = tf.linspace(-1, 1, numPoints);
-    const preds = model.predict(xs.reshape([numPoints, 1]));
+    const inputs = normalizedXsToInputTensor(xs, modelInputSize(model));
+    const preds = model.predict(inputs);
 
     const xArray = xs.dataSync();
     const yArray = preds.dataSync();
@@ -114,7 +159,8 @@ export function extractQuadraticCoeffs(model, numSamples = 200) {
 
   return tf.tidy(() => {
     const xs = tf.linspace(-1, 1, numSamples);
-    const preds = model.predict(xs.reshape([numSamples, 1]));
+    const inputs = normalizedXsToInputTensor(xs, modelInputSize(model));
+    const preds = model.predict(inputs);
 
     const xArr = Array.from(xs.dataSync()).map(nx => denormalizeX(nx));
     const yArr = Array.from(preds.dataSync()).map(ny => denormalizeY(ny));

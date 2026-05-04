@@ -1,13 +1,56 @@
-import React from 'react';
-import { BrainCircuit, TrendingDown, Zap, Info } from 'lucide-react';
+import { BrainCircuit, TrendingDown, Zap, Info, Activity } from 'lucide-react';
+
+const activationGuide = {
+  tanh: {
+    label: 'Tanh',
+    effect: 'Smooth and centered around zero, so it usually fits balanced quadratic curves well.',
+    tip: 'Good default for this normalized canvas.'
+  },
+  relu: {
+    label: 'ReLU',
+    effect: 'Builds piecewise-linear shapes, so the curve can look sharper or less smooth.',
+    tip: 'Use a smaller learning rate if the curve jumps.'
+  },
+  elu: {
+    label: 'ELU',
+    effect: 'A smoother ReLU-like option that often bends more naturally than ReLU.',
+    tip: 'Useful for continuous curves.'
+  },
+  softplus: {
+    label: 'Softplus',
+    effect: 'A very smooth ReLU-like function, often producing gentle curve transitions.',
+    tip: 'Good when ReLU looks too angular.'
+  },
+  swish: {
+    label: 'Swish',
+    effect: 'A smooth modern activation that can learn flexible curved shapes.',
+    tip: 'Often stable with lr 0.01 or 0.005.'
+  },
+  mish: {
+    label: 'Mish',
+    effect: 'A smooth non-monotonic activation that can create expressive curved fits.',
+    tip: 'Good for experimenting with smooth nonlinear fits.'
+  },
+  sigmoid: {
+    label: 'Sigmoid',
+    effect: 'Can saturate, which may flatten the prediction into a weak curve or line.',
+    tip: 'Try lr 0.005 or 0.001 if it underfits.'
+  },
+  linear: {
+    label: 'Linear',
+    effect: 'Uses quadratic features [x, x²] with a linear output, so it directly learns a parabola.',
+    tip: 'Best for showing linear regression on engineered quadratic features.'
+  }
+};
 
 export default function TeachingPanel({
   isTraining, epoch, totalEpochs, loss, lossHistory,
-  coefficients, trainedWith, configChanged
+  coefficients, currentActivation, trainedWith, configChanged
 }) {
 
   const displayLoss = loss !== null ? loss.toFixed(6) : '—';
   const progressPct = totalEpochs > 0 ? Math.round((epoch / totalEpochs) * 100) : 0;
+  const activationInfo = activationGuide[currentActivation] ?? activationGuide.tanh;
 
   // Mini loss chart
   const renderLossChart = () => {
@@ -88,7 +131,8 @@ export default function TeachingPanel({
             <Info size={12} />
             <span>
               Trained: {trainedWith.hiddenLayers} layers × {trainedWith.neuronsPerLayer} neurons,{' '}
-              {trainedWith.activation}, lr={trainedWith.learningRate}, {trainedWith.epochs} epochs
+              {trainedWith.activation}, lr={trainedWith.learningRate}, drop={trainedWith.dropoutRate ?? 0},{' '}
+              {trainedWith.epochs} epochs
             </span>
           </div>
         )}
@@ -137,6 +181,22 @@ export default function TeachingPanel({
           <span className="b-color">{Math.abs(coefficients.b).toFixed(3)}</span>x
           {coefficients.c >= 0 ? ' + ' : ' − '}
           <span className="c-color">{Math.abs(coefficients.c).toFixed(3)}</span>
+        </div>
+      </div>
+
+      <div className="section activation-guide-section">
+        <div className="section-title">
+          <Activity size={16} /> Activation Effect: {activationInfo.label}
+        </div>
+        <div className="explanation">
+          <div className="step">
+            <span className="step-num">ƒ</span>
+            <p>{activationInfo.effect}</p>
+          </div>
+          <div className="step">
+            <span className="step-num">i</span>
+            <p>{activationInfo.tip}</p>
+          </div>
         </div>
       </div>
 

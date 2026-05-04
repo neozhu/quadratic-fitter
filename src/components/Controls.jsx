@@ -1,4 +1,3 @@
-import React from 'react';
 import { Settings2, RotateCcw, Play, Square, Trash2, Undo2 } from 'lucide-react';
 
 export default function Controls({
@@ -14,7 +13,7 @@ export default function Controls({
   configChanged,
 }) {
 
-  const numericFields = new Set(['hiddenLayers', 'neuronsPerLayer', 'learningRate', 'epochs']);
+  const numericFields = new Set(['hiddenLayers', 'neuronsPerLayer', 'learningRate', 'dropoutRate', 'epochs']);
 
   const handleConfigChange = (e) => {
     const { name, value } = e.target;
@@ -78,10 +77,14 @@ export default function Controls({
             onChange={handleConfigChange}
             disabled={isTraining}
           >
-            <option value="relu">ReLU</option>
             <option value="tanh">Tanh</option>
-            <option value="sigmoid">Sigmoid</option>
+            <option value="relu">ReLU</option>
             <option value="elu">ELU</option>
+            <option value="softplus">Softplus</option>
+            <option value="swish">Swish</option>
+            <option value="mish">Mish</option>
+            <option value="sigmoid">Sigmoid</option>
+            <option value="linear">Linear</option>
           </select>
         </div>
       </div>
@@ -107,6 +110,22 @@ export default function Controls({
             <option value={0.005}>0.005</option>
             <option value={0.001}>0.001 (Slow)</option>
           </select>
+        </div>
+
+        <div className="control-group">
+          <label htmlFor="ctrl-dropoutRate">Dropout Rate</label>
+          <div className="slider-row">
+            <input
+              id="ctrl-dropoutRate"
+              type="range"
+              name="dropoutRate"
+              min="0" max="0.5" step="0.05"
+              value={config.dropoutRate}
+              onChange={handleConfigChange}
+              disabled={isTraining}
+            />
+            <span className="slider-value">{config.dropoutRate.toFixed(2)}</span>
+          </div>
         </div>
 
         <div className="control-group">

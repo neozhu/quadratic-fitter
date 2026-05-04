@@ -1,12 +1,11 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { X_MIN, X_MAX, Y_MIN, Y_MAX } from '../lib/ml';
 
 export default function Canvas({
   points,
   onAddPoint,
   predictionCurve,
-  coefficients,
-  isTraining
+  coefficients
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
